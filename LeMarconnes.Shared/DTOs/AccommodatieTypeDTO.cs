@@ -4,10 +4,7 @@ using System;
 // ======== Namespace ========
 namespace LeMarconnes.Shared.DTOs
 {
-    /// <summary>
-    /// Data Transfer Object voor ACCOMMODATIE_TYPE entiteit.
-    /// Lookup tabel: 'Gîte-Geheel' (1) of 'Gîte-Slaapplek' (2).
-    /// </summary>
+    // DTO voor AccommodatieType — lookup: 'Gîte-Geheel' (1), 'Gîte-Slaapplek' (2).
     public class AccommodatieTypeDTO
     {
         // ==== Properties ====

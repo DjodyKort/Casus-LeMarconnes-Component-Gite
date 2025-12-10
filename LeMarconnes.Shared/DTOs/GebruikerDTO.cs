@@ -4,10 +4,7 @@ using System;
 // ======== Namespace ========
 namespace LeMarconnes.Shared.DTOs
 {
-    /// <summary>
-    /// Data Transfer Object voor GEBRUIKER entiteit.
-    /// Let op: WachtwoordHash wordt NOOIT meegestuurd naar client!
-    /// </summary>
+    // DTO voor Gebruiker. WachtwoordHash wordt NOOIT naar client gestuurd.
     public class GebruikerDTO
     {
         // ==== Properties ====

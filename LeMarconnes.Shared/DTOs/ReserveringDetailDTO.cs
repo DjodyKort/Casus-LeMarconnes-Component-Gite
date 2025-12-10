@@ -4,11 +4,8 @@ using System;
 // ======== Namespace ========
 namespace LeMarconnes.Shared.DTOs
 {
-    /// <summary>
-    /// Data Transfer Object voor RESERVERING_DETAIL entiteit.
-    /// Bevat de kostenposten binnen een reservering.
-    /// PrijsOpMoment: Historische vastlegging van de prijs tijdens boeking.
-    /// </summary>
+    // DTO voor ReserveringDetail — kostenposten binnen een reservering.
+    // PrijsOpMoment: historische vastlegging van prijs tijdens boeking.
     public class ReserveringDetailDTO
     {
         // ==== Properties ====

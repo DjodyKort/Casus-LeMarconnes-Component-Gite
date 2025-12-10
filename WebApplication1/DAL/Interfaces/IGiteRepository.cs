@@ -7,163 +7,118 @@ using LeMarconnes.Shared.DTOs;
 // ======== Namespace ========
 namespace LeMarconnes.API.DAL.Interfaces
 {
-    /// <summary>
-    /// Interface voor de Gîte Repository.
-    /// Definieert het contract voor alle database operaties
-    /// gerelateerd aan de Gîte module.
-    /// 
-    /// Dit is onderdeel van de DAL (Data Access Layer).
-    /// 
-    /// WAAROM EEN INTERFACE?
-    /// 1. Dependency Injection: De controller vraagt IGiteRepository,
-    ///    niet de concrete implementatie. Dit maakt het makkelijk om
-    ///    later een andere implementatie te gebruiken (bijv. voor testing).
-    /// 2. Testbaarheid: Je kunt een mock repository maken voor unit tests.
-    /// 3. Losse koppeling: De controller weet niet HOE data opgehaald wordt,
-    ///    alleen WAT er opgehaald kan worden.
-    /// 
-    /// ASYNC/AWAIT:
-    /// Alle methods zijn async (Task) omdat database operaties I/O-bound zijn.
-    /// Dit voorkomt dat de server blokkeert tijdens database queries.
-    /// </summary>
+    // Interface voor repository operations van de Gîte module.
+    // Kort, menselijk beschreven — details staan in implementatie.
     public interface IGiteRepository
     {
-        // ============================================================
+
         // ==== VERHUUR EENHEDEN ====
-        // Methods voor het ophalen van Gîte eenheden
-        // ============================================================
+
         
-        /// <summary>Haalt alle Gîte eenheden op (TypeID 1 en 2).</summary>
+        // Haal alle Gîte-eenheden (types 1 en 2)
         Task<List<VerhuurEenheidDTO>> GetAllGiteUnitsAsync();
         
-        /// <summary>Haalt een specifieke eenheid op basis van ID.</summary>
+        // Haal een eenheid op via ID
         Task<VerhuurEenheidDTO?> GetUnitByIdAsync(int eenheidId);
         
-        /// <summary>Haalt alle children op voor een parent eenheid.</summary>
+        // Haal children voor een parent eenheid
         Task<List<VerhuurEenheidDTO>> GetChildUnitsAsync(int parentId);
 
-        // ============================================================
+
         // ==== RESERVERINGEN ====
-        // CRUD operaties voor reserveringen
-        // ============================================================
-        
-        /// <summary>Haalt alle reserveringen op, nieuwste eerst.</summary>
+        // Haal alle reserveringen (nieuwste eerst)
         Task<List<ReserveringDTO>> GetAllReserveringenAsync();
         
-        /// <summary>Haalt een specifieke reservering op basis van ID.</summary>
+        // Haal reservering op via ID
         Task<ReserveringDTO?> GetReserveringByIdAsync(int reserveringId);
         
-        /// <summary>Haalt alle overlappende reserveringen op voor een periode.</summary>
+        // Haal reserveringen die overlappen met een periode
         Task<List<ReserveringDTO>> GetReservationsByDateRangeAsync(DateTime startDatum, DateTime eindDatum);
         
-        /// <summary>Haalt reserveringen op voor een eenheid in een periode.</summary>
+        // Haal reserveringen voor een specifieke eenheid binnen een periode
         Task<List<ReserveringDTO>> GetReservationsForUnitAsync(int eenheidId, DateTime startDatum, DateTime eindDatum);
         
-        /// <summary>Haalt alle reserveringen op voor een gast.</summary>
+        // Haal alle reserveringen van een gast
         Task<List<ReserveringDTO>> GetReservationsForGastAsync(int gastId);
         
-        /// <summary>Maakt een nieuwe reservering aan, retourneert het nieuwe ID.</summary>
+        // Maak een nieuwe reservering, retourneer nieuw ID
         Task<int> CreateReservationAsync(ReserveringDTO reservering);
         
-        /// <summary>Wijzigt de status van een reservering.</summary>
+        // Update status van een reservering
         Task<bool> UpdateReservationStatusAsync(int reserveringId, string status);
         
-        /// <summary>Verwijdert een reservering permanent.</summary>
+        // Verwijder een reservering
         Task<bool> DeleteReservationAsync(int reserveringId);
         
-        /// <summary>Maakt een reservering detail regel aan (kostenpost).</summary>
+        // Voeg een detailregel toe aan een reservering
         Task<int> CreateReservationDetailAsync(ReserveringDetailDTO detail);
         
-        /// <summary>Haalt alle detail regels op voor een reservering.</summary>
+        // Haal alle detailregels van een reservering
         Task<List<ReserveringDetailDTO>> GetReservationDetailsAsync(int reserveringId);
 
-        // ============================================================
+
         // ==== GASTEN ====
-        // CRUD operaties voor gasten
-        // ============================================================
-        
-        /// <summary>Haalt alle gasten op, gesorteerd op naam.</summary>
+        // Haal alle gasten (gesorteerd op naam)
         Task<List<GastDTO>> GetAllGastenAsync();
         
-        /// <summary>Zoekt een gast op basis van email (uniek).</summary>
+        // Zoek gast op email
         Task<GastDTO?> GetGastByEmailAsync(string email);
         
-        /// <summary>Haalt een gast op basis van ID.</summary>
+        // Haal gast op via ID
         Task<GastDTO?> GetGastByIdAsync(int gastId);
         
-        /// <summary>Maakt een nieuwe gast aan, retourneert het nieuwe ID.</summary>
+        // Maak nieuwe gast, retourneer nieuw ID
         Task<int> CreateGastAsync(GastDTO gast);
         
-        /// <summary>Wijzigt de gegevens van een gast.</summary>
+        // Update gastgegevens
         Task<bool> UpdateGastAsync(GastDTO gast);
 
-        // ============================================================
-        // ==== GEBRUIKERS ====
-        // Read-only operaties voor gebruikers (eigenaren)
-        // ============================================================
-        
-        /// <summary>Haalt alle gebruikers op.</summary>
+        // ==== GEBRUIKERS ====       
+        // Haal alle gebruikers
         Task<List<GebruikerDTO>> GetAllGebruikersAsync();
         
-        /// <summary>Haalt een gebruiker op basis van ID.</summary>
+        // Haal gebruiker op via ID
         Task<GebruikerDTO?> GetGebruikerByIdAsync(int gebruikerId);
         
-        /// <summary>Zoekt een gebruiker op basis van email.</summary>
+        // Zoek gebruiker op email
         Task<GebruikerDTO?> GetGebruikerByEmailAsync(string email);
 
-        // ============================================================
+
         // ==== TARIEVEN ====
-        // Read-only operaties voor tarieven
-        // ============================================================
-        
-        /// <summary>Haalt het geldige tarief op voor een type/platform combinatie.</summary>
+        // Haal geldig tarief voor type/platform op een gegeven datum
         Task<TariefDTO?> GetTariefAsync(int typeId, int platformId, DateTime datum);
         
-        /// <summary>Haalt alle tarieven op.</summary>
+        // Haal alle tarieven
         Task<List<TariefDTO>> GetAllTarievenAsync();
 
-        // ============================================================
+
         // ==== TARIEF CATEGORIEËN ====
-        // Read-only operaties voor tarief categorieën (lookup)
-        // ============================================================
-        
-        /// <summary>Haalt alle tarief categorieën op.</summary>
+        // Haal alle tariefcategorieën
         Task<List<TariefCategorieDTO>> GetAllTariefCategoriesAsync();
         
-        /// <summary>Haalt een tarief categorie op basis van ID.</summary>
+        // Haal tariefcategorie op via ID
         Task<TariefCategorieDTO?> GetTariefCategorieByIdAsync(int categorieId);
 
-        // ============================================================
         // ==== PLATFORMEN ====
-        // Read-only operaties voor platformen (lookup)
-        // ============================================================
-        
-        /// <summary>Haalt alle platformen op.</summary>
+        // Haal alle platformen
         Task<List<PlatformDTO>> GetAllPlatformsAsync();
         
-        /// <summary>Haalt een platform op basis van ID.</summary>
+        // Haal platform op via ID
         Task<PlatformDTO?> GetPlatformByIdAsync(int platformId);
 
-        // ============================================================
+
         // ==== ACCOMMODATIE TYPES ====
-        // Read-only operaties voor accommodatie types (lookup)
-        // ============================================================
-        
-        /// <summary>Haalt alle accommodatie types op.</summary>
+        // Haal alle accommodatie types
         Task<List<AccommodatieTypeDTO>> GetAllAccommodatieTypesAsync();
         
-        /// <summary>Haalt een accommodatie type op basis van ID.</summary>
+        // Haal accommodatie type op via ID
         Task<AccommodatieTypeDTO?> GetAccommodatieTypeByIdAsync(int typeId);
 
-        // ============================================================
         // ==== LOGBOEK (AUDIT TRAIL) ====
-        // Operaties voor het logboek/audit trail
-        // ============================================================
-        
-        /// <summary>Maakt een nieuwe log entry aan.</summary>
+        // Maak een nieuwe log entry
         Task<int> CreateLogEntryAsync(LogboekDTO logEntry);
         
-        /// <summary>Haalt de meest recente log entries op.</summary>
+        // Haal recente log entries (default 50)
         Task<List<LogboekDTO>> GetRecentLogsAsync(int count = 50);
     }
 }

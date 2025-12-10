@@ -4,10 +4,7 @@ using System;
 // ======== Namespace ========
 namespace LeMarconnes.Shared.DTOs
 {
-    /// <summary>
-    /// Data Transfer Object voor TARIEF_CATEGORIE entiteit.
-    /// Categorieën: 'Logies', 'Toeristenbelasting'.
-    /// </summary>
+    // DTO voor TariefCategorie — lookup: 'Logies', 'Toeristenbelasting', etc.
     public class TariefCategorieDTO
     {
         // ==== Properties ====

@@ -4,62 +4,48 @@ using System;
 // ======== Namespace ========
 namespace LeMarconnes.Shared.DTOs
 {
-    /// <summary>
-    /// Data Transfer Object voor GAST entiteit.
-    /// Bevat NAW-gegevens voor factuur en nachtregister.
-    /// 
-    /// Correspondeert met de GAST tabel in de database.
-    /// Email is uniek en wordt gebruikt als identifier bij boekingen.
-    /// </summary>
+    // DTO voor Gast — bevat NAW gegevens en optionele betaalgegevens.
     public class GastDTO
     {
         // ==== Properties ====
         // Database kolommen
         
-        /// <summary>Primary Key - Auto increment in database</summary>
+        // Primary Key
         public int GastID { get; set; }
         
-        /// <summary>Volledige naam van de gast</summary>
+        // Volledige naam van de gast
         public string Naam { get; set; } = string.Empty;
         
-        /// <summary>Email adres (UNIEK) - Wordt gebruikt als identifier</summary>
+        // Email adres (uniek)
         public string Email { get; set; } = string.Empty;
         
-        /// <summary>Telefoonnummer (optioneel)</summary>
+        // Telefoonnummer (optioneel)
         public string? Tel { get; set; }
         
-        /// <summary>Straatnaam zonder huisnummer</summary>
+        // Straatnaam
         public string Straat { get; set; } = string.Empty;
         
-        /// <summary>Huisnummer inclusief eventuele toevoeging</summary>
+        // Huisnummer inclusief toevoeging
         public string Huisnr { get; set; } = string.Empty;
         
-        /// <summary>Postcode</summary>
+        // Postcode
         public string Postcode { get; set; } = string.Empty;
         
-        /// <summary>Woonplaats</summary>
+        // Woonplaats
         public string Plaats { get; set; } = string.Empty;
         
-        /// <summary>Land (default: Nederland)</summary>
+        // Land (default Nederland)
         public string Land { get; set; } = "Nederland";
         
-        /// <summary>IBAN bankrekeningnummer (optioneel, voor terugbetalingen)</summary>
+        // IBAN (optioneel)
         public string? IBAN { get; set; }
 
         // ==== Constructors ====
         
-        /// <summary>
-        /// Parameterloze constructor.
-        /// Nodig voor JSON deserialisatie en object initializers.
-        /// </summary>
+        // Parameterloze constructor
         public GastDTO() { }
 
-        /// <summary>
-        /// Constructor met minimale vereiste velden.
-        /// </summary>
-        /// <param name="gastId">Het GastID</param>
-        /// <param name="naam">Volledige naam</param>
-        /// <param name="email">Email adres</param>
+        // Constructor met minimale velden
         public GastDTO(int gastId, string naam, string email)
         {
             GastID = gastId;

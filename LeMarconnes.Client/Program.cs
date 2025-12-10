@@ -13,13 +13,7 @@ using LeMarconnes.Shared.DTOs;
 // ======== Namespace ========
 namespace LeMarconnes.Client;
 
-/// <summary>
-/// Console Client voor Le Marconnès Gîte Systeem.
-/// Communiceert via HTTP met de Web API.
-/// 
-/// Dit is de presentatielaag (UI) van de applicatie.
-/// Alle business logica zit in de API, deze client doet alleen HTTP calls.
-/// </summary>
+// Console client for the Gîte system. UI-only, logic lives in API.
 class Program
 {
     // ==== Properties ====
@@ -40,10 +34,7 @@ class Program
     // ==== MAIN ENTRY POINT ====
     // ============================================================
 
-    /// <summary>
-    /// Hoofdmethode van de applicatie.
-    /// Bevat de main loop die het menu toont en keuzes verwerkt.
-    /// </summary>
+    // Hoofdmethode van de applicatie - main loop en menu
     static async Task Main(string[] args)
     {
         // ==== Start of Function ====
@@ -105,12 +96,7 @@ class Program
     // Deze methods vragen input met automatische retry bij fouten
     // ============================================================
 
-    /// <summary>
-    /// Vraagt een datum aan de gebruiker.
-    /// Blijft vragen tot een geldige datum is ingevoerd.
-    /// </summary>
-    /// <param name="prompt">De tekst die getoond wordt aan de gebruiker</param>
-    /// <returns>Een geldige DateTime waarde</returns>
+    // Vraagt een datum aan de gebruiker, blijft vragen tot valide
     private static DateTime VraagDatum(string prompt)
     {
         // ==== Start of Function ====
@@ -131,14 +117,7 @@ class Program
         }
     }
 
-    /// <summary>
-    /// Vraagt een integer aan de gebruiker met optionele min/max validatie.
-    /// Blijft vragen tot een geldig getal binnen de grenzen is ingevoerd.
-    /// </summary>
-    /// <param name="prompt">De tekst die getoond wordt aan de gebruiker</param>
-    /// <param name="min">Optionele minimumwaarde</param>
-    /// <param name="max">Optionele maximumwaarde</param>
-    /// <returns>Een geldige integer waarde</returns>
+    // Vraagt een integer met optionele min/max validatie
     private static int VraagInteger(string prompt, int? min = null, int? max = null)
     {
         // ==== Start of Function ====
@@ -174,14 +153,7 @@ class Program
         }
     }
 
-    /// <summary>
-    /// Vraagt een string aan de gebruiker.
-    /// Kan verplicht of optioneel zijn, met een default waarde.
-    /// </summary>
-    /// <param name="prompt">De tekst die getoond wordt aan de gebruiker</param>
-    /// <param name="verplicht">Of het veld verplicht is (default: true)</param>
-    /// <param name="defaultWaarde">Waarde die gebruikt wordt als input leeg is</param>
-    /// <returns>De ingevoerde string of de default waarde</returns>
+    // Vraagt een niet-lege string of default
     private static string VraagString(string prompt, bool verplicht = true, string? defaultWaarde = null)
     {
         // ==== Start of Function ====
@@ -205,12 +177,7 @@ class Program
         }
     }
 
-    /// <summary>
-    /// Vraagt een optionele string aan de gebruiker.
-    /// Mag leeg blijven, returned dan null.
-    /// </summary>
-    /// <param name="prompt">De tekst die getoond wordt aan de gebruiker</param>
-    /// <returns>De ingevoerde string of null als leeg</returns>
+    // Optionele string, kan null zijn
     private static string? VraagOptional(string prompt)
     {
         // ==== Start of Function ====
@@ -219,12 +186,7 @@ class Program
         return string.IsNullOrWhiteSpace(input) ? null : input;
     }
 
-    /// <summary>
-    /// Vraagt een ja/nee bevestiging aan de gebruiker.
-    /// Accepteert "j", "ja", "n", "nee" (case-insensitive).
-    /// </summary>
-    /// <param name="prompt">De tekst die getoond wordt aan de gebruiker</param>
-    /// <returns>true voor ja, false voor nee</returns>
+    // Vraag ja/nee bevestiging, accepteert j/ja/n/nee
     private static bool VraagBevestiging(string prompt)
     {
         // ==== Start of Function ====
@@ -242,13 +204,7 @@ class Program
         }
     }
 
-    /// <summary>
-    /// Vraagt de gebruiker om een keuze uit een lijst van geldige IDs.
-    /// Blijft vragen tot een geldig ID is gekozen.
-    /// </summary>
-    /// <param name="prompt">De tekst die getoond wordt aan de gebruiker</param>
-    /// <param name="geldigeIds">HashSet met alle geldige ID waarden</param>
-    /// <returns>Het gekozen ID</returns>
+    // Laat gebruiker kiezen uit set van geldige IDs
     private static int VraagKeuzeUitLijst(string prompt, HashSet<int> geldigeIds)
     {
         // ==== Start of Function ====
@@ -272,10 +228,7 @@ class Program
     // Methods voor het tonen van de user interface
     // ============================================================
 
-    /// <summary>
-    /// Print de applicatie header/banner.
-    /// Wordt getoond bovenaan het scherm bij opstarten en na elke actie.
-    /// </summary>
+    // Print de applicatie header/banner
     private static void PrintHeader()
     {
         // ==== Start of Function ====
@@ -287,9 +240,7 @@ class Program
         Console.ResetColor();  // Reset naar standaard console kleur
     }
 
-    /// <summary>
-    /// Print het hoofdmenu met alle beschikbare opties.
-    /// </summary>
+    // Print hoofdmenu
     private static void PrintMainMenu()
     {
         // ==== Start of Function ====
@@ -311,11 +262,7 @@ class Program
         Console.Write("Keuze: ");
     }
 
-    /// <summary>
-    /// Print een sectie header voor een specifieke functie.
-    /// Geeft visuele scheiding tussen verschillende acties.
-    /// </summary>
-    /// <param name="title">De titel van de sectie</param>
+    // Print sectie header
     private static void PrintSectionHeader(string title)
     {
         // ==== Start of Function ====

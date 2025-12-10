@@ -10,13 +10,8 @@ using LeMarconnes.API.DAL.Interfaces;
 // ======== Namespace ========
 namespace LeMarconnes.API.DAL.Repositories
 {
-    /// <summary>
-    /// Repository voor alle Gîte-gerelateerde database operaties.
-    /// Gebruikt ADO.NET met MySqlConnector (geen Entity Framework).
-    /// Alle queries gebruiken parameterized statements voor SQL injection preventie.
-    /// 
-    /// Dit is onderdeel van de DAL (Data Access Layer).
-    /// </summary>
+    // Repository voor Gîte database operaties. Gebruikt ADO.NET met MySqlConnector.
+    // Alle queries gebruiken parameterized statements (SQL injection preventie).
     public class GiteRepository : IGiteRepository
     {
         // ==== Properties ====
@@ -32,9 +27,7 @@ namespace LeMarconnes.API.DAL.Repositories
         // ==== VERHUUR EENHEDEN METHODS ====
         // ============================================================
 
-        /// <summary>
-        /// Haalt alle Gîte eenheden op (TypeID 1 = Geheel, TypeID 2 = Slaapplek).
-        /// </summary>
+        // Haal alle Gîte eenheden (TypeID 1=Geheel, 2=Slaapplek)
         public async Task<List<VerhuurEenheidDTO>> GetAllGiteUnitsAsync()
         {
             // ==== Declaring Variables ====
@@ -60,9 +53,7 @@ namespace LeMarconnes.API.DAL.Repositories
             return units;
         }
 
-        /// <summary>
-        /// Haalt een specifieke eenheid op basis van ID.
-        /// </summary>
+        // Haal specifieke eenheid op via ID
         public async Task<VerhuurEenheidDTO?> GetUnitByIdAsync(int eenheidId)
         {
             // ==== Declaring Variables ====
@@ -89,9 +80,7 @@ namespace LeMarconnes.API.DAL.Repositories
             return unit;
         }
 
-        /// <summary>
-        /// Haalt alle child eenheden (slaapplekken) op voor een parent (de gehele Gîte).
-        /// </summary>
+        // Haal children voor een parent (slaapplekken voor de Gîte)
         public async Task<List<VerhuurEenheidDTO>> GetChildUnitsAsync(int parentId)
         {
             // ==== Declaring Variables ====
@@ -123,9 +112,7 @@ namespace LeMarconnes.API.DAL.Repositories
         // ==== RESERVERINGEN METHODS ====
         // ============================================================
 
-        /// <summary>
-        /// Haalt alle reserveringen op.
-        /// </summary>
+        // Haal alle reserveringen
         public async Task<List<ReserveringDTO>> GetAllReserveringenAsync()
         {
             // ==== Declaring Variables ====
@@ -150,9 +137,7 @@ namespace LeMarconnes.API.DAL.Repositories
             return reserveringen;
         }
 
-        /// <summary>
-        /// Haalt een specifieke reservering op basis van ID.
-        /// </summary>
+        // Haal reservering op via ID
         public async Task<ReserveringDTO?> GetReserveringByIdAsync(int reserveringId)
         {
             // ==== Declaring Variables ====
@@ -179,11 +164,8 @@ namespace LeMarconnes.API.DAL.Repositories
             return reservering;
         }
 
-        /// <summary>
-        /// Haalt alle reserveringen op die overlappen met de opgegeven periode.
-        /// Gebruikt voor de beschikbaarheidscheck.
-        /// Overlap logica: (StartDatum LT EindParam) AND (Einddatum GT StartParam)
-        /// </summary>
+        // Haal overlappende reserveringen voor een periode (voor beschikbaarheidscheck)
+        // Overlap: (Start LT EindParam) AND (Eind GT StartParam)
         public async Task<List<ReserveringDTO>> GetReservationsByDateRangeAsync(DateTime startDatum, DateTime eindDatum)
         {
             // ==== Declaring Variables ====
@@ -213,9 +195,7 @@ namespace LeMarconnes.API.DAL.Repositories
             return reserveringen;
         }
 
-        /// <summary>
-        /// Haalt reserveringen op voor een specifieke eenheid in een periode.
-        /// </summary>
+        // Haal reserveringen voor een eenheid in een periode
         public async Task<List<ReserveringDTO>> GetReservationsForUnitAsync(int eenheidId, DateTime startDatum, DateTime eindDatum)
         {
             // ==== Declaring Variables ====
@@ -247,9 +227,7 @@ namespace LeMarconnes.API.DAL.Repositories
             return reserveringen;
         }
 
-        /// <summary>
-        /// Haalt reserveringen op voor een specifieke gast.
-        /// </summary>
+        // Haal reserveringen voor een gast
         public async Task<List<ReserveringDTO>> GetReservationsForGastAsync(int gastId)
         {
             // ==== Declaring Variables ====
@@ -277,9 +255,7 @@ namespace LeMarconnes.API.DAL.Repositories
             return reserveringen;
         }
 
-        /// <summary>
-        /// Maakt een nieuwe reservering aan en retourneert het nieuwe ID.
-        /// </summary>
+        // Maak reservering, retourneer nieuw ID
         public async Task<int> CreateReservationAsync(ReserveringDTO reservering)
         {
             // ==== Declaring Variables ====
@@ -304,9 +280,7 @@ namespace LeMarconnes.API.DAL.Repositories
             return Convert.ToInt32(result);
         }
 
-        /// <summary>
-        /// Wijzigt de status van een reservering.
-        /// </summary>
+        // Update reserveringsstatus
         public async Task<bool> UpdateReservationStatusAsync(int reserveringId, string status)
         {
             // ==== Declaring Variables ====
@@ -327,9 +301,7 @@ namespace LeMarconnes.API.DAL.Repositories
             return rowsAffected > 0;
         }
 
-        /// <summary>
-        /// Verwijdert een reservering.
-        /// </summary>
+        // Verwijder reservering
         public async Task<bool> DeleteReservationAsync(int reserveringId)
         {
             // ==== Declaring Variables ====
@@ -346,9 +318,7 @@ namespace LeMarconnes.API.DAL.Repositories
             return rowsAffected > 0;
         }
 
-        /// <summary>
-        /// Maakt een reservering detail regel aan (kostenpost).
-        /// </summary>
+        // Maak detailregel (kostenpost), retourneer nieuw ID
         public async Task<int> CreateReservationDetailAsync(ReserveringDetailDTO detail)
         {
             // ==== Declaring Variables ====
@@ -371,9 +341,7 @@ namespace LeMarconnes.API.DAL.Repositories
             return Convert.ToInt32(result);
         }
 
-        /// <summary>
-        /// Haalt de detailregels (kostenposten) van een reservering op.
-        /// </summary>
+        // Haal detailregels van een reservering
         public async Task<List<ReserveringDetailDTO>> GetReservationDetailsAsync(int reserveringId)
         {
             // ==== Declaring Variables ====
@@ -411,9 +379,7 @@ namespace LeMarconnes.API.DAL.Repositories
         // ==== GASTEN METHODS ====
         // ============================================================
 
-        /// <summary>
-        /// Haalt alle gasten op.
-        /// </summary>
+        // Haal alle gasten
         public async Task<List<GastDTO>> GetAllGastenAsync()
         {
             // ==== Declaring Variables ====
@@ -438,9 +404,7 @@ namespace LeMarconnes.API.DAL.Repositories
             return gasten;
         }
 
-        /// <summary>
-        /// Zoekt een gast op basis van email adres.
-        /// </summary>
+        // Zoek gast op email
         public async Task<GastDTO?> GetGastByEmailAsync(string email)
         {
             // ==== Declaring Variables ====
@@ -467,9 +431,7 @@ namespace LeMarconnes.API.DAL.Repositories
             return gast;
         }
 
-        /// <summary>
-        /// Haalt een gast op basis van ID.
-        /// </summary>
+        // Haal gast op via ID
         public async Task<GastDTO?> GetGastByIdAsync(int gastId)
         {
             // ==== Declaring Variables ====
@@ -496,9 +458,7 @@ namespace LeMarconnes.API.DAL.Repositories
             return gast;
         }
 
-        /// <summary>
-        /// Maakt een nieuwe gast aan en retourneert het nieuwe GastID.
-        /// </summary>
+        // Maak nieuwe gast, retourneer nieuw GastID
         public async Task<int> CreateGastAsync(GastDTO gast)
         {
             // ==== Declaring Variables ====
@@ -526,9 +486,7 @@ namespace LeMarconnes.API.DAL.Repositories
             return Convert.ToInt32(result);
         }
 
-        /// <summary>
-        /// Wijzigt de gegevens van een gast.
-        /// </summary>
+        // Update gastgegevens
         public async Task<bool> UpdateGastAsync(GastDTO gast)
         {
             // ==== Declaring Variables ====
@@ -563,9 +521,7 @@ namespace LeMarconnes.API.DAL.Repositories
         // ==== GEBRUIKERS METHODS ====
         // ============================================================
 
-        /// <summary>
-        /// Haalt alle gebruikers op.
-        /// </summary>
+        // Haal alle gebruikers
         public async Task<List<GebruikerDTO>> GetAllGebruikersAsync()
         {
             // ==== Declaring Variables ====
@@ -590,9 +546,7 @@ namespace LeMarconnes.API.DAL.Repositories
             return gebruikers;
         }
 
-        /// <summary>
-        /// Haalt een gebruiker op basis van ID.
-        /// </summary>
+        // Haal gebruiker op via ID
         public async Task<GebruikerDTO?> GetGebruikerByIdAsync(int gebruikerId)
         {
             // ==== Declaring Variables ====
@@ -619,9 +573,7 @@ namespace LeMarconnes.API.DAL.Repositories
             return gebruiker;
         }
 
-        /// <summary>
-        /// Haalt een gebruiker op basis van email.
-        /// </summary>
+        // Zoek gebruiker op email
         public async Task<GebruikerDTO?> GetGebruikerByEmailAsync(string email)
         {
             // ==== Declaring Variables ====
@@ -652,10 +604,8 @@ namespace LeMarconnes.API.DAL.Repositories
         // ==== TARIEVEN METHODS ====
         // ============================================================
 
-        /// <summary>
-        /// Haalt het geldige tarief op voor een specifieke combinatie.
-        /// Controleert of de datum binnen GeldigVan en GeldigTot valt.
-        /// </summary>
+        // Haal geldig tarief voor type/platform op datum
+        // Controleert GeldigVan/GeldigTot
         public async Task<TariefDTO?> GetTariefAsync(int typeId, int platformId, DateTime datum)
         {
             // ==== Declaring Variables ====
@@ -689,9 +639,7 @@ namespace LeMarconnes.API.DAL.Repositories
             return tarief;
         }
 
-        /// <summary>
-        /// Haalt alle tarieven op.
-        /// </summary>
+        // Haal alle tarieven
         public async Task<List<TariefDTO>> GetAllTarievenAsync()
         {
             // ==== Declaring Variables ====
@@ -720,9 +668,7 @@ namespace LeMarconnes.API.DAL.Repositories
         // ==== TARIEF CATEGORIEËN METHODS ====
         // ============================================================
 
-        /// <summary>
-        /// Haalt alle tarief categorieën op.
-        /// </summary>
+        // Haal alle tariefcategorieën
         public async Task<List<TariefCategorieDTO>> GetAllTariefCategoriesAsync()
         {
             // ==== Declaring Variables ====
@@ -751,9 +697,7 @@ namespace LeMarconnes.API.DAL.Repositories
             return categories;
         }
 
-        /// <summary>
-        /// Haalt een tarief categorie op basis van ID.
-        /// </summary>
+        // Haal tariefcategorie op via ID
         public async Task<TariefCategorieDTO?> GetTariefCategorieByIdAsync(int categorieId)
         {
             // ==== Declaring Variables ====
@@ -788,9 +732,7 @@ namespace LeMarconnes.API.DAL.Repositories
         // ==== PLATFORMEN METHODS ====
         // ============================================================
 
-        /// <summary>
-        /// Haalt alle platformen op.
-        /// </summary>
+        // Haal alle platformen
         public async Task<List<PlatformDTO>> GetAllPlatformsAsync()
         {
             // ==== Declaring Variables ====
@@ -815,9 +757,7 @@ namespace LeMarconnes.API.DAL.Repositories
             return platforms;
         }
 
-        /// <summary>
-        /// Haalt een platform op basis van ID.
-        /// </summary>
+        // Haal platform op via ID
         public async Task<PlatformDTO?> GetPlatformByIdAsync(int platformId)
         {
             // ==== Declaring Variables ====
@@ -848,9 +788,7 @@ namespace LeMarconnes.API.DAL.Repositories
         // ==== ACCOMMODATIE TYPES METHODS ====
         // ============================================================
 
-        /// <summary>
-        /// Haalt alle accommodatie types op.
-        /// </summary>
+        // Haal alle accommodatie types
         public async Task<List<AccommodatieTypeDTO>> GetAllAccommodatieTypesAsync()
         {
             // ==== Declaring Variables ====
@@ -879,9 +817,7 @@ namespace LeMarconnes.API.DAL.Repositories
             return types;
         }
 
-        /// <summary>
-        /// Haalt een accommodatie type op basis van ID.
-        /// </summary>
+        // Haal accommodatie type op via ID
         public async Task<AccommodatieTypeDTO?> GetAccommodatieTypeByIdAsync(int typeId)
         {
             // ==== Declaring Variables ====
@@ -916,9 +852,7 @@ namespace LeMarconnes.API.DAL.Repositories
         // ==== LOGBOEK METHODS (Audit Trail) ====
         // ============================================================
 
-        /// <summary>
-        /// Maakt een nieuwe log entry aan voor audit trail.
-        /// </summary>
+        // Maak log entry voor audit trail, retourneer nieuw ID
         public async Task<int> CreateLogEntryAsync(LogboekDTO logEntry)
         {
             // ==== Declaring Variables ====
@@ -944,9 +878,7 @@ namespace LeMarconnes.API.DAL.Repositories
             return Convert.ToInt32(result);
         }
 
-        /// <summary>
-        /// Haalt de meest recente log entries op.
-        /// </summary>
+        // Haal recente log entries (nieuwste eerst)
         public async Task<List<LogboekDTO>> GetRecentLogsAsync(int count = 50)
         {
             // ==== Declaring Variables ====

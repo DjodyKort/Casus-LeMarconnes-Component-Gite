@@ -4,11 +4,7 @@ using System;
 // ======== Namespace ========
 namespace LeMarconnes.Shared.DTOs
 {
-    /// <summary>
-    /// Request DTO voor beschikbaarheidscheck.
-    /// Wordt door de client naar de API gestuurd om te checken
-    /// welke eenheden vrij zijn in een bepaalde periode.
-    /// </summary>
+    // Request DTO voor beschikbaarheidscheck binnen een periode.
     public class BeschikbaarheidRequestDTO
     {
         // ==== Properties ====

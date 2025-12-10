@@ -4,21 +4,8 @@ using System;
 // ======== Namespace ========
 namespace LeMarconnes.Shared.DTOs
 {
-    /// <summary>
-    /// Request DTO voor het aanmaken van een nieuwe boeking.
-    /// Bevat alle benodigde informatie om een reservering te maken,
-    /// inclusief gastgegevens (voor het geval de gast nog niet bestaat).
-    /// 
-    /// Dit DTO wordt door de Console Client naar de API gestuurd
-    /// via POST /api/gite/boek
-    /// 
-    /// De API zal:
-    /// 1. Beschikbaarheid controleren
-    /// 2. Gast zoeken op email, of nieuwe gast aanmaken
-    /// 3. Tarief ophalen
-    /// 4. Prijs berekenen
-    /// 5. Reservering aanmaken
-    /// </summary>
+    // Request DTO voor nieuwe boeking. Bevat gastgegevens + reserveringsdetails.
+    // Gebruikt door Console Client via POST /api/gite/boek
     public class BoekingRequestDTO
     {
         // ============================================================
@@ -26,28 +13,28 @@ namespace LeMarconnes.Shared.DTOs
         // Wordt gebruikt om gast te zoeken of aan te maken
         // ============================================================
         
-        /// <summary>Volledige naam van de gast</summary>
+        // Volledige naam van de gast
         public string GastNaam { get; set; } = string.Empty;
         
-        /// <summary>Email adres (wordt gebruikt als unieke identifier)</summary>
+        // Email (unieke identifier)
         public string GastEmail { get; set; } = string.Empty;
         
-        /// <summary>Telefoonnummer (optioneel)</summary>
+        // Telefoonnummer (optioneel)
         public string? GastTel { get; set; }
         
-        /// <summary>Straatnaam</summary>
+        // Straatnaam
         public string GastStraat { get; set; } = string.Empty;
         
-        /// <summary>Huisnummer</summary>
+        // Huisnummer
         public string GastHuisnr { get; set; } = string.Empty;
         
-        /// <summary>Postcode</summary>
+        // Postcode
         public string GastPostcode { get; set; } = string.Empty;
         
-        /// <summary>Woonplaats</summary>
+        // Woonplaats
         public string GastPlaats { get; set; } = string.Empty;
         
-        /// <summary>Land (default: Nederland)</summary>
+        // Land (default Nederland)
         public string GastLand { get; set; } = "Nederland";
 
         // ============================================================
@@ -55,34 +42,22 @@ namespace LeMarconnes.Shared.DTOs
         // Gegevens over de daadwerkelijke reservering
         // ============================================================
         
-        /// <summary>ID van de te boeken eenheid</summary>
+        // ID van de te boeken eenheid
         public int EenheidID { get; set; }
         
-        /// <summary>
-        /// ID van het platform waarop geboekt wordt.
-        /// 1 = Eigen Site (0% commissie)
-        /// 2 = Booking.com (15% commissie)
-        /// 3 = Airbnb (3% commissie)
-        /// </summary>
+        // ID van het platform (1=Eigen, 2=Booking.com, 3=Airbnb)
         public int PlatformID { get; set; }
         
-        /// <summary>Startdatum van de reservering (check-in)</summary>
+        // Startdatum (check-in)
         public DateTime StartDatum { get; set; }
         
-        /// <summary>Einddatum van de reservering (check-out)</summary>
+        // Einddatum (check-out)
         public DateTime EindDatum { get; set; }
         
-        /// <summary>
-        /// Aantal personen.
-        /// Wordt gebruikt voor prijsberekening bij slaapplekken (per persoon per nacht).
-        /// </summary>
+        // Aantal personen (voor prijsberekening slaappleken)
         public int AantalPersonen { get; set; } = 1;
 
-        // ==== Constructor ====<|disc_score|>1
-        /// <summary>
-        /// Parameterloze constructor.
-        /// Nodig voor JSON deserialisatie.
-        /// </summary>
+        // ==== Constructor ====
         public BoekingRequestDTO() { }
     }
 }
