@@ -9,7 +9,6 @@ namespace LeMarconnes.Shared.DTOs
     public class BoekingResponseDTO
     {
         // ==== Properties ====
-        
         // Het toegekende reserveringsnummer (alleen bij succes)
         public int ReserveringID { get; set; }
         

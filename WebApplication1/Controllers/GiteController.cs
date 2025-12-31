@@ -11,7 +11,6 @@ using LeMarconnes.Shared.DTOs;
 namespace LeMarconnes.API.Controllers
 {
     // Controller voor Gîte API endpoints. Bevat business logic voor Parent-Child beschikbaarheid.
-    // Alle endpoints zijn RESTful en retourneren JSON.
     [ApiController]
     [Route("api/[controller]")]
     public class GiteController : ControllerBase {
@@ -26,10 +25,8 @@ namespace LeMarconnes.API.Controllers
             _repository = repository;
         }
 
-        // ============================================================
         // ==== EENHEDEN ENDPOINTS ====
         // Endpoints voor het ophalen van verhuur eenheden
-        // ============================================================
 
         // GET: api/gite/eenheden
         [HttpGet("eenheden")]
@@ -53,10 +50,8 @@ namespace LeMarconnes.API.Controllers
             return Ok(unit);
         }
 
-        // ============================================================
         // ==== BESCHIKBAARHEID ENDPOINT ===
         // Dit is de KERNLOGICA van het hybride verhuurmodel!
-        // ============================================================
 
         // GET: api/gite/beschikbaarheid?startDatum=2025-06-01&eindDatum=2025-06-08
         // Controleert beschikbaarheid en implementeert Parent-Child blokkade logica
@@ -114,10 +109,8 @@ namespace LeMarconnes.API.Controllers
             return geblokkeerd;
         }
 
-        // ============================================================
         // ==== RESERVERINGEN ENDPOINTS ====
         // CRUD operaties voor reserveringen
-        // ============================================================
 
         // GET: api/gite/reserveringen
         [HttpGet("reserveringen")]
@@ -286,10 +279,8 @@ namespace LeMarconnes.API.Controllers
             return NoContent();
         }
 
-        // ============================================================
         // ==== GASTEN ENDPOINTS ====
         // CRUD operaties voor gasten
-        // ============================================================
 
         // GET: api/gite/gasten of api/gite/gasten?email=test@example.com
         [HttpGet("gasten")]

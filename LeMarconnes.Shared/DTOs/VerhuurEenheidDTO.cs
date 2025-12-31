@@ -1,5 +1,6 @@
 // ======== Imports ========
 using System;
+using System.Text.Json.Serialization;
 
 // ======== Namespace ========
 namespace LeMarconnes.Shared.DTOs
@@ -7,30 +8,31 @@ namespace LeMarconnes.Shared.DTOs
     // DTO voor VerhuurEenheid. Parent-child structuur via ParentEenheidID.
     public class VerhuurEenheidDTO
     {
-        // ==== Properties ====
-        // Database kolommen
-        
-        // Primary Key
+        // ==== Properties ====       
         public int EenheidID { get; set; }
         
-        // Naam van de eenheid
         public string Naam { get; set; } = string.Empty;
-        
-        // Accommodatie type (1=Geheel, 2=Slaapplek)
+
+        // FK naar ACCOMMODATIE_TYPE (1=Geheel, 2=Slaapplek)
         public int TypeID { get; set; }
         
-        // Maximale capaciteit
         public int MaxCapaciteit { get; set; }
         
-        // Parent eenheid ID (null voor parent zelf)
+        // (null voor parent zelf)
         public int? ParentEenheidID { get; set; }
-        
+
+        // ==== OOB (Relational) Properties ====
+        public AccommodatieTypeDTO? Type { get; set; }
+
+        [JsonIgnore]
+        public VerhuurEenheidDTO? ParentEenheid { get; set; }
+        public List<VerhuurEenheidDTO> ChildEenheden { get; set; } = new();
+
         // ==== Runtime Properties ====
         // Niet opgeslagen in DB; berekend door business logic
         public bool IsBeschikbaar { get; set; } = true;
 
         // ==== Constructors ====
-        
         public VerhuurEenheidDTO() { }
 
         public VerhuurEenheidDTO(int eenheidId, string naam, int typeId, int maxCapaciteit, int? parentEenheidId)

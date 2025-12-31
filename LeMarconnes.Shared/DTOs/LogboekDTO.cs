@@ -9,9 +9,6 @@ namespace LeMarconnes.Shared.DTOs
     public class LogboekDTO
     {
         // ==== Properties ====
-        // Database kolommen
-        
-        // Primary Key
         public int LogID { get; set; }
         
         // FK naar GEBRUIKER (null als systeem de actie uitvoerde)
@@ -35,8 +32,10 @@ namespace LeMarconnes.Shared.DTOs
         // Nieuwe waarde bij wijziging (JSON, optioneel)
         public string? NieuweWaarde { get; set; }
 
+        // ==== OOB (Relational) Properties ====
+        public GebruikerDTO? Gebruiker { get; set; }
+
         // ==== Constructors ====
-        
         public LogboekDTO() 
         {
             Tijdstip = DateTime.Now;

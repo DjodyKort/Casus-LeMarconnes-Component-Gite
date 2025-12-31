@@ -1,5 +1,6 @@
 // ======== Imports ========
 using System;
+using System.Text.Json.Serialization;
 
 // ======== Namespace ========
 namespace LeMarconnes.Shared.DTOs
@@ -14,6 +15,11 @@ namespace LeMarconnes.Shared.DTOs
         public int CategorieID { get; set; }
         public int Aantal { get; set; } = 1;
         public decimal PrijsOpMoment { get; set; }
+
+        // ==== OOB (Relational) Properties ====
+        [JsonIgnore] // Om circulaire referenties te vermijden bij serialisatie
+        public ReserveringDTO? Reservering { get; set; }
+        public TariefCategorieDTO? Categorie { get; set; }
 
         // ==== Constructor ====
         public ReserveringDetailDTO() { }

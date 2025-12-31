@@ -9,10 +9,7 @@ namespace LeMarconnes.Shared.DTOs
     // TypeID 2 (Slaapplek): Prijs per persoon per nacht
     public class TariefDTO
     {
-        // ==== Properties ====
-        // Database kolommen
-        
-        // Primary Key
+        // ==== Properties ====        
         public int TariefID { get; set; }
         
         // FK naar ACCOMMODATIE_TYPE (1=Geheel, 2=Slaapplek)
@@ -39,8 +36,12 @@ namespace LeMarconnes.Shared.DTOs
         // Geldigheid tot (null = onbeperkt)
         public DateTime? GeldigTot { get; set; }
 
+        // ==== OOB (Relational) Properties ====
+        public AccommodatieTypeDTO? Type { get; set; }
+        public TariefCategorieDTO? Categorie { get; set; }
+        public PlatformDTO? Platform { get; set; }
+
         // ==== Constructors ====
-        
         public TariefDTO() { }
 
         public TariefDTO(int tariefId, int typeId, int categorieId, decimal prijs, DateTime geldigVan)

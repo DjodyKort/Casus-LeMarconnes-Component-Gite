@@ -13,8 +13,6 @@ namespace LeMarconnes.API.DAL.Interfaces
     {
 
         // ==== VERHUUR EENHEDEN ====
-
-        
         // Haal alle Gîte-eenheden (types 1 en 2)
         Task<List<VerhuurEenheidDTO>> GetAllGiteUnitsAsync();
         
