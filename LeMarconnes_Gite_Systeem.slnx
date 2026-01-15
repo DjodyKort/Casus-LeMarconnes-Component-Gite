@@ -1,5 +1,5 @@
 <Solution>
   <Project Path="LeMarconnes.Client/LeMarconnes.Client.csproj" />
   <Project Path="LeMarconnes.Shared/LeMarconnes.Shared.csproj" />
-  <Project Path="WebApplication1/LeMarconnes.API.csproj" />
+  <Project Path="LeMarconnes.API/LeMarconnes.API.csproj" />
 </Solution>
