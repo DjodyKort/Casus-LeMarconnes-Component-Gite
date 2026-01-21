@@ -55,6 +55,9 @@ namespace LeMarconnes.API.DAL.Repositories
                    tc.Naam as CategorieNaam
             FROM RESERVERING_DETAIL rd WITH (NOLOCK)
             INNER JOIN TARIEF_CATEGORIE tc WITH (NOLOCK) ON rd.CategorieID = tc.CategorieID";
+        private const string QUERY_GASTEN = @"
+            SELECT GastID, Naam, Email, Tel, Straat, Huisnr, Postcode, Plaats, Land, IBAN 
+            FROM GAST WITH (NOLOCK)";
         private const string QUERY_USERS = @"
             SELECT u.GebruikerID, u.GastID, u.Email, u.Rol,
                    g.Naam as GastNaam, g.Email as GastEmail
@@ -87,6 +90,15 @@ namespace LeMarconnes.API.DAL.Repositories
             var connection = new SqlConnection(_connectionString);
             await connection.OpenAsync();
             return connection;
+        }
+
+        /// <summary>
+        /// Bouwt de WHERE clause voor datum overlap checks.
+        /// Overlap logic: (Start < ReqEnd) AND (End > ReqStart) AND Status != 'Geannuleerd'
+        /// </summary>
+        private static string GetDateOverlapWhereClause()
+        {
+            return "r.Startdatum < @Eind AND r.Einddatum > @Start AND r.Status != 'Geannuleerd'";
         }
 
         // Private (Mappers)
@@ -180,7 +192,9 @@ namespace LeMarconnes.API.DAL.Repositories
                 Rol = reader.GetString("Rol")
             };
 
-            // OO Vul: Als er een GastID is, vul het Gast object (deels)
+            // OO Vul: Als er een GastID is, vul het Gast object (GEDEELTELIJK via JOIN)
+            // BELANGRIJK: Dit bevat alleen Naam en Email van de Gast (niet NAW gegevens).
+            // Voor volledige Gast details moet GetGastByIdAsync aangeroepen worden.
             if (user.GastID.HasValue)
             {
                 user.Gast = new GastDTO
@@ -188,6 +202,7 @@ namespace LeMarconnes.API.DAL.Repositories
                     GastID = user.GastID.Value,
                     Naam = reader.GetString("GastNaam"),
                     Email = reader.GetString("GastEmail")
+                    // Tel, Straat, Huisnr, etc. zijn NIET beschikbaar via deze query
                 };
             }
             return user;
@@ -265,6 +280,52 @@ namespace LeMarconnes.API.DAL.Repositories
             var parent = allUnits.FirstOrDefault(u => u.EenheidID == parentId);
             return parent?.ChildEenheden ?? new List<VerhuurEenheidDTO>();
         }
+        public async Task<int> CreateUnitAsync(VerhuurEenheidDTO unit)
+        {
+            const string sql = @"
+                INSERT INTO VERHUUR_EENHEID (Naam, TypeID, MaxCapaciteit, ParentEenheidID)
+                VALUES (@Naam, @TypeID, @MaxCapaciteit, @ParentEenheidID);
+                SELECT CAST(SCOPE_IDENTITY() AS INT);";
+
+            await using var conn = await GetConnectionAsync();
+            await using var cmd = new SqlCommand(sql, conn);
+            cmd.Parameters.AddWithValue("@Naam", unit.Naam);
+            cmd.Parameters.AddWithValue("@TypeID", unit.TypeID);
+            cmd.Parameters.AddWithValue("@MaxCapaciteit", unit.MaxCapaciteit);
+            cmd.Parameters.AddWithValue("@ParentEenheidID", (object?)unit.ParentEenheidID ?? DBNull.Value);
+
+            var result = await cmd.ExecuteScalarAsync();
+            return Convert.ToInt32(result);
+        }
+        public async Task<bool> UpdateUnitAsync(VerhuurEenheidDTO unit)
+        {
+            const string sql = @"
+                UPDATE VERHUUR_EENHEID 
+                SET Naam = @Naam, TypeID = @TypeID, MaxCapaciteit = @MaxCapaciteit, ParentEenheidID = @ParentEenheidID
+                WHERE EenheidID = @ID";
+
+            await using var conn = await GetConnectionAsync();
+            await using var cmd = new SqlCommand(sql, conn);
+            cmd.Parameters.AddWithValue("@ID", unit.EenheidID);
+            cmd.Parameters.AddWithValue("@Naam", unit.Naam);
+            cmd.Parameters.AddWithValue("@TypeID", unit.TypeID);
+            cmd.Parameters.AddWithValue("@MaxCapaciteit", unit.MaxCapaciteit);
+            cmd.Parameters.AddWithValue("@ParentEenheidID", (object?)unit.ParentEenheidID ?? DBNull.Value);
+
+            return await cmd.ExecuteNonQueryAsync() > 0;
+        }
+        public async Task<bool> DeleteUnitAsync(int eenheidId)
+        {
+            // Soft delete: we kunnen later een IsActief kolom toevoegen
+            // Voor nu: hard delete (alleen als geen reserveringen)
+            const string sql = "DELETE FROM VERHUUR_EENHEID WHERE EenheidID = @ID";
+
+            await using var conn = await GetConnectionAsync();
+            await using var cmd = new SqlCommand(sql, conn);
+            cmd.Parameters.AddWithValue("@ID", eenheidId);
+
+            return await cmd.ExecuteNonQueryAsync() > 0;
+        }
 
         // ==== RESERVERING METHODS ====
         public async Task<List<ReserveringDTO>> GetAllReserveringenAsync()
@@ -302,8 +363,7 @@ namespace LeMarconnes.API.DAL.Repositories
             var list = new List<ReserveringDTO>();
 
             await using var conn = await GetConnectionAsync();
-            // Note: Overlap logic: (Start < ReqEnd) AND (End > ReqStart)
-            string sql = $"{QUERY_RESERVERINGEN} WHERE r.Startdatum < @Eind AND r.Einddatum > @Start AND r.Status != 'Geannuleerd'";
+            string sql = $"{QUERY_RESERVERINGEN} WHERE {GetDateOverlapWhereClause()}";
 
             await using var cmd = new SqlCommand(sql, conn);
             cmd.Parameters.AddWithValue("@Start", startDatum);
@@ -321,7 +381,7 @@ namespace LeMarconnes.API.DAL.Repositories
             var list = new List<ReserveringDTO>();
 
             await using var conn = await GetConnectionAsync();
-            string sql = $"{QUERY_RESERVERINGEN} WHERE r.EenheidID = @UnitID AND r.Startdatum < @Eind AND r.Einddatum > @Start AND r.Status != 'Geannuleerd'";
+            string sql = $"{QUERY_RESERVERINGEN} WHERE r.EenheidID = @UnitID AND {GetDateOverlapWhereClause()}";
 
             await using var cmd = new SqlCommand(sql, conn);
             cmd.Parameters.AddWithValue("@UnitID", eenheidId);
@@ -369,6 +429,26 @@ namespace LeMarconnes.API.DAL.Repositories
 
             var result = await cmd.ExecuteScalarAsync();
             return Convert.ToInt32(result);
+        }
+        public async Task<bool> UpdateReservationAsync(ReserveringDTO reservering)
+        {
+            const string sql = @"
+                UPDATE RESERVERING 
+                SET GastID = @GastID, EenheidID = @EenheidID, PlatformID = @PlatformID,
+                    Startdatum = @Startdatum, Einddatum = @Einddatum, Status = @Status
+                WHERE ReserveringID = @ID";
+
+            await using var conn = await GetConnectionAsync();
+            await using var cmd = new SqlCommand(sql, conn);
+            cmd.Parameters.AddWithValue("@ID", reservering.ReserveringID);
+            cmd.Parameters.AddWithValue("@GastID", reservering.GastID);
+            cmd.Parameters.AddWithValue("@EenheidID", reservering.EenheidID);
+            cmd.Parameters.AddWithValue("@PlatformID", reservering.PlatformID);
+            cmd.Parameters.AddWithValue("@Startdatum", reservering.Startdatum);
+            cmd.Parameters.AddWithValue("@Einddatum", reservering.Einddatum);
+            cmd.Parameters.AddWithValue("@Status", reservering.Status);
+
+            return await cmd.ExecuteNonQueryAsync() > 0;
         }
         public async Task<bool> UpdateReservationStatusAsync(int reserveringId, string status)
         {
@@ -444,9 +524,7 @@ namespace LeMarconnes.API.DAL.Repositories
         public async Task<List<GastDTO>> GetAllGastenAsync()
         {
             var gasten = new List<GastDTO>();
-            const string sql = @"SELECT GastID, Naam, Email, Tel, Straat, Huisnr, Postcode, Plaats, Land, IBAN 
-                                 FROM GAST WITH (NOLOCK) 
-                                 ORDER BY Naam";
+            const string sql = $"{QUERY_GASTEN} ORDER BY Naam";
 
             await using var conn = await GetConnectionAsync();
             await using var cmd = new SqlCommand(sql, conn);
@@ -458,9 +536,7 @@ namespace LeMarconnes.API.DAL.Repositories
         public async Task<GastDTO?> GetGastByIdAsync(int gastId)
         {
             await using var conn = await GetConnectionAsync();
-            await using var cmd = new SqlCommand(@"SELECT GastID, Naam, Email, Tel, Straat, Huisnr, Postcode, Plaats, Land, IBAN 
-                                                     FROM GAST WITH (NOLOCK) 
-                                                     WHERE GastID = @ID", conn);
+            await using var cmd = new SqlCommand($"{QUERY_GASTEN} WHERE GastID = @ID", conn);
             cmd.Parameters.AddWithValue("@ID", gastId);
 
             await using var reader = await cmd.ExecuteReaderAsync();
@@ -469,9 +545,7 @@ namespace LeMarconnes.API.DAL.Repositories
         public async Task<GastDTO?> GetGastByEmailAsync(string email)
         {
             await using var conn = await GetConnectionAsync();
-            await using var cmd = new SqlCommand(@"SELECT GastID, Naam, Email, Tel, Straat, Huisnr, Postcode, Plaats, Land, IBAN 
-                                                     FROM GAST WITH (NOLOCK) 
-                                                     WHERE Email = @Email", conn);
+            await using var cmd = new SqlCommand($"{QUERY_GASTEN} WHERE Email = @Email", conn);
             cmd.Parameters.AddWithValue("@Email", email);
 
             await using var reader = await cmd.ExecuteReaderAsync();
@@ -509,6 +583,28 @@ namespace LeMarconnes.API.DAL.Repositories
             var result = await cmd.ExecuteScalarAsync();
             return Convert.ToInt32(result);
         }
+        public async Task<bool> AnonimiseerGastAsync(int gastId)
+        {
+            // GDPR compliance: anonimiseer persoonlijke gegevens
+            const string sql = @"
+                UPDATE GAST 
+                SET Naam = 'Geanonimiseerd', 
+                    Email = CONCAT('anon_', CAST(@GastID AS VARCHAR), '@deleted.local'),
+                    Tel = NULL, 
+                    Straat = 'Verwijderd', 
+                    Huisnr = '0',
+                    Postcode = '0000AA',
+                    Plaats = 'Onbekend',
+                    Land = 'Onbekend',
+                    IBAN = NULL
+                WHERE GastID = @GastID";
+
+            await using var conn = await GetConnectionAsync();
+            await using var cmd = new SqlCommand(sql, conn);
+            cmd.Parameters.AddWithValue("@GastID", gastId);
+
+            return await cmd.ExecuteNonQueryAsync() > 0;
+        }
 
         // ==== GEBRUIKER METHODS ====
         public async Task<List<GebruikerDTO>> GetAllGebruikersAsync()
@@ -516,7 +612,6 @@ namespace LeMarconnes.API.DAL.Repositories
             var list = new List<GebruikerDTO>();
             await using var conn = await GetConnectionAsync();
             await using var cmd = new SqlCommand($"{QUERY_USERS} ORDER BY u.Email", conn);
-
             await using var reader = await cmd.ExecuteReaderAsync();
             while (await reader.ReadAsync()) list.Add(MapGebruikerFullFromReader(reader));
             return list;
@@ -526,7 +621,6 @@ namespace LeMarconnes.API.DAL.Repositories
             await using var conn = await GetConnectionAsync();
             await using var cmd = new SqlCommand($"{QUERY_USERS} WHERE u.GebruikerID = @ID", conn);
             cmd.Parameters.AddWithValue("@ID", gebruikerId);
-
             await using var reader = await cmd.ExecuteReaderAsync();
             return await reader.ReadAsync() ? MapGebruikerFullFromReader(reader) : null;
         }
@@ -535,9 +629,88 @@ namespace LeMarconnes.API.DAL.Repositories
             await using var conn = await GetConnectionAsync();
             await using var cmd = new SqlCommand($"{QUERY_USERS} WHERE u.Email = @Email", conn);
             cmd.Parameters.AddWithValue("@Email", email);
-
             await using var reader = await cmd.ExecuteReaderAsync();
             return await reader.ReadAsync() ? MapGebruikerFullFromReader(reader) : null;
+        }
+
+        /// <summary>
+        /// Haal gebruiker op met VOLLEDIGE Gast gegevens (inclusief NAW).
+        /// Gebruikt twee queries: eerst gebruiker, dan volledige gast indien aanwezig.
+        /// </summary>
+        public async Task<GebruikerDTO?> GetGebruikerByEmailMetVolledeGastAsync(string email)
+        {
+            var gebruiker = await GetGebruikerByEmailAsync(email);
+
+            if (gebruiker?.GastID.HasValue == true)
+            {
+                // Overschrijf de gedeeltelijke Gast data met volledige Gast data
+                gebruiker.Gast = await GetGastByIdAsync(gebruiker.GastID.Value);
+            }
+
+            return gebruiker;
+        }
+
+        public async Task<int> CreateGebruikerAsync(GebruikerDTO gebruiker)
+        {
+            await using var conn = await GetConnectionAsync();
+            await using var cmd = new SqlCommand(@"
+                INSERT INTO GEBRUIKER (GastID, Email, WachtwoordHash, Rol)
+                VALUES (@GastID, @Email, @WachtwoordHash, @Rol);
+                SELECT CAST(SCOPE_IDENTITY() AS INT);", conn);
+
+            cmd.Parameters.AddWithValue("@GastID", (object?)gebruiker.GastID ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("@Email", gebruiker.Email);
+            cmd.Parameters.AddWithValue("@WachtwoordHash", gebruiker.WachtwoordHash);
+            cmd.Parameters.AddWithValue("@Rol", gebruiker.Rol);
+
+            var result = await cmd.ExecuteScalarAsync();
+            return Convert.ToInt32(result);
+        }
+
+        public async Task<bool> UpdateGebruikerAsync(GebruikerDTO gebruiker)
+        {
+            await using var conn = await GetConnectionAsync();
+            await using var cmd = new SqlCommand(@"
+                UPDATE GEBRUIKER 
+                SET GastID = @GastID,
+                    Email = @Email,
+                    WachtwoordHash = @WachtwoordHash,
+                    Rol = @Rol
+                WHERE GebruikerID = @GebruikerID", conn);
+
+            cmd.Parameters.AddWithValue("@GebruikerID", gebruiker.GebruikerID);
+            cmd.Parameters.AddWithValue("@GastID", (object?)gebruiker.GastID ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("@Email", gebruiker.Email);
+            cmd.Parameters.AddWithValue("@WachtwoordHash", gebruiker.WachtwoordHash);
+            cmd.Parameters.AddWithValue("@Rol", gebruiker.Rol);
+
+            var rows = await cmd.ExecuteNonQueryAsync();
+            return rows > 0;
+        }
+
+        public async Task<bool> DeleteGebruikerAsync(int gebruikerId)
+        {
+            await using var conn = await GetConnectionAsync();
+            await using var cmd = new SqlCommand("DELETE FROM GEBRUIKER WHERE GebruikerID = @GebruikerID", conn);
+            cmd.Parameters.AddWithValue("@GebruikerID", gebruikerId);
+
+            var rows = await cmd.ExecuteNonQueryAsync();
+            return rows > 0;
+        }
+
+        public async Task<bool> UpdateGastIBANAsync(int gastId, string iban)
+        {
+            await using var conn = await GetConnectionAsync();
+            await using var cmd = new SqlCommand(@"
+                UPDATE GAST 
+                SET IBAN = @IBAN
+                WHERE GastID = @GastID", conn);
+
+            cmd.Parameters.AddWithValue("@GastID", gastId);
+            cmd.Parameters.AddWithValue("@IBAN", iban);
+
+            var rows = await cmd.ExecuteNonQueryAsync();
+            return rows > 0;
         }
 
         // ==== TARIEF METHODS ====
@@ -583,6 +756,69 @@ namespace LeMarconnes.API.DAL.Repositories
             await using var reader = await cmd.ExecuteReaderAsync();
             while (await reader.ReadAsync()) list.Add(MapTariefFullFromReader(reader));
             return list;
+        }
+        public async Task<TariefDTO?> GetTariefByIdAsync(int tariefId)
+        {
+            await using var conn = await GetConnectionAsync();
+            await using var cmd = new SqlCommand($"{QUERY_TARIEVEN} WHERE t.TariefID = @ID", conn);
+            cmd.Parameters.AddWithValue("@ID", tariefId);
+
+            await using var reader = await cmd.ExecuteReaderAsync();
+            return await reader.ReadAsync() ? MapTariefFullFromReader(reader) : null;
+        }
+        public async Task<int> CreateTariefAsync(TariefDTO tarief)
+        {
+            const string sql = @"
+                INSERT INTO TARIEF (TypeID, CategorieID, PlatformID, Prijs, TaxStatus, TaxTarief, GeldigVan, GeldigTot)
+                VALUES (@TypeID, @CategorieID, @PlatformID, @Prijs, @TaxStatus, @TaxTarief, @GeldigVan, @GeldigTot);
+                SELECT CAST(SCOPE_IDENTITY() AS INT);";
+
+            await using var conn = await GetConnectionAsync();
+            await using var cmd = new SqlCommand(sql, conn);
+            cmd.Parameters.AddWithValue("@TypeID", tarief.TypeID);
+            cmd.Parameters.AddWithValue("@CategorieID", tarief.CategorieID);
+            cmd.Parameters.AddWithValue("@PlatformID", (object?)tarief.PlatformID ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("@Prijs", tarief.Prijs);
+            cmd.Parameters.AddWithValue("@TaxStatus", tarief.TaxStatus);
+            cmd.Parameters.AddWithValue("@TaxTarief", tarief.TaxTarief);
+            cmd.Parameters.AddWithValue("@GeldigVan", tarief.GeldigVan);
+            cmd.Parameters.AddWithValue("@GeldigTot", (object?)tarief.GeldigTot ?? DBNull.Value);
+
+            var result = await cmd.ExecuteScalarAsync();
+            return Convert.ToInt32(result);
+        }
+        public async Task<bool> UpdateTariefAsync(TariefDTO tarief)
+        {
+            const string sql = @"
+                UPDATE TARIEF 
+                SET TypeID = @TypeID, CategorieID = @CategorieID, PlatformID = @PlatformID, 
+                    Prijs = @Prijs, TaxStatus = @TaxStatus, TaxTarief = @TaxTarief,
+                    GeldigVan = @GeldigVan, GeldigTot = @GeldigTot
+                WHERE TariefID = @ID";
+
+            await using var conn = await GetConnectionAsync();
+            await using var cmd = new SqlCommand(sql, conn);
+            cmd.Parameters.AddWithValue("@ID", tarief.TariefID);
+            cmd.Parameters.AddWithValue("@TypeID", tarief.TypeID);
+            cmd.Parameters.AddWithValue("@CategorieID", tarief.CategorieID);
+            cmd.Parameters.AddWithValue("@PlatformID", (object?)tarief.PlatformID ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("@Prijs", tarief.Prijs);
+            cmd.Parameters.AddWithValue("@TaxStatus", tarief.TaxStatus);
+            cmd.Parameters.AddWithValue("@TaxTarief", tarief.TaxTarief);
+            cmd.Parameters.AddWithValue("@GeldigVan", tarief.GeldigVan);
+            cmd.Parameters.AddWithValue("@GeldigTot", (object?)tarief.GeldigTot ?? DBNull.Value);
+
+            return await cmd.ExecuteNonQueryAsync() > 0;
+        }
+        public async Task<bool> DeleteTariefAsync(int tariefId)
+        {
+            const string sql = "DELETE FROM TARIEF WHERE TariefID = @ID";
+
+            await using var conn = await GetConnectionAsync();
+            await using var cmd = new SqlCommand(sql, conn);
+            cmd.Parameters.AddWithValue("@ID", tariefId);
+
+            return await cmd.ExecuteNonQueryAsync() > 0;
         }
         public async Task<List<TariefCategorieDTO>> GetAllTariefCategoriesAsync()
         {
@@ -651,6 +887,41 @@ namespace LeMarconnes.API.DAL.Repositories
 
             return await reader.ReadAsync() ? new AccommodatieTypeDTO(reader.GetInt32("TypeID"), reader.GetString("Naam")) : null;
         }
+        public async Task<int> CreateAccommodatieTypeAsync(AccommodatieTypeDTO type)
+        {
+            const string sql = @"
+                INSERT INTO ACCOMMODATIE_TYPE (Naam)
+                VALUES (@Naam);
+                SELECT CAST(SCOPE_IDENTITY() AS INT);";
+
+            await using var conn = await GetConnectionAsync();
+            await using var cmd = new SqlCommand(sql, conn);
+            cmd.Parameters.AddWithValue("@Naam", type.Naam);
+
+            var result = await cmd.ExecuteScalarAsync();
+            return Convert.ToInt32(result);
+        }
+        public async Task<bool> UpdateAccommodatieTypeAsync(AccommodatieTypeDTO type)
+        {
+            const string sql = "UPDATE ACCOMMODATIE_TYPE SET Naam = @Naam WHERE TypeID = @ID";
+
+            await using var conn = await GetConnectionAsync();
+            await using var cmd = new SqlCommand(sql, conn);
+            cmd.Parameters.AddWithValue("@ID", type.TypeID);
+            cmd.Parameters.AddWithValue("@Naam", type.Naam);
+
+            return await cmd.ExecuteNonQueryAsync() > 0;
+        }
+        public async Task<bool> DeleteAccommodatieTypeAsync(int typeId)
+        {
+            const string sql = "DELETE FROM ACCOMMODATIE_TYPE WHERE TypeID = @ID";
+
+            await using var conn = await GetConnectionAsync();
+            await using var cmd = new SqlCommand(sql, conn);
+            cmd.Parameters.AddWithValue("@ID", typeId);
+
+            return await cmd.ExecuteNonQueryAsync() > 0;
+        }
 
         // ==== LOGBOEK METHODS ====
         public async Task<int> CreateLogEntryAsync(LogboekDTO log)
@@ -667,7 +938,7 @@ namespace LeMarconnes.API.DAL.Repositories
             cmd.Parameters.AddWithValue("@Tijdstip", log.Tijdstip);
             cmd.Parameters.AddWithValue("@Actie", log.Actie);
             cmd.Parameters.AddWithValue("@TabelNaam", (object?)log.TabelNaam ?? DBNull.Value);
-            cmd.Parameters.AddWithValue("@RecordID", (object?)log.RecordID ?? DBNull.Value); // Let op: command -> cmd
+            cmd.Parameters.AddWithValue("@RecordID", (object?)log.RecordID ?? DBNull.Value);
             cmd.Parameters.AddWithValue("@OudeWaarde", (object?)log.OudeWaarde ?? DBNull.Value);
             cmd.Parameters.AddWithValue("@NieuweWaarde", (object?)log.NieuweWaarde ?? DBNull.Value);
 
@@ -677,13 +948,41 @@ namespace LeMarconnes.API.DAL.Repositories
         public async Task<List<LogboekDTO>> GetRecentLogsAsync(int count = 50)
         {
             var list = new List<LogboekDTO>();
-            // Optioneel: Je zou hier ook JOIN GEBRUIKER kunnen doen om te zien WIE het deed
             await using var conn = await GetConnectionAsync();
             await using var cmd = new SqlCommand(@"SELECT TOP (@Count) 
                 LogID, GebruikerID, Tijdstip, Actie, TabelNaam, RecordID, OudeWaarde, NieuweWaarde 
                 FROM LOGBOEK WITH (NOLOCK) 
                 ORDER BY Tijdstip DESC", conn);
             cmd.Parameters.AddWithValue("@Count", count);
+
+            await using var reader = await cmd.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                list.Add(new LogboekDTO
+                {
+                    LogID = reader.GetInt32("LogID"),
+                    GebruikerID = reader.IsDBNull(reader.GetOrdinal("GebruikerID")) ? null : reader.GetInt32("GebruikerID"),
+                    Tijdstip = reader.GetDateTime("Tijdstip"),
+                    Actie = reader.GetString("Actie"),
+                    TabelNaam = reader.IsDBNull(reader.GetOrdinal("TabelNaam")) ? null : reader.GetString("TabelNaam"),
+                    RecordID = reader.IsDBNull(reader.GetOrdinal("RecordID")) ? null : reader.GetInt32("RecordID"),
+                    OudeWaarde = reader.IsDBNull(reader.GetOrdinal("OudeWaarde")) ? null : reader.GetString("OudeWaarde"),
+                    NieuweWaarde = reader.IsDBNull(reader.GetOrdinal("NieuweWaarde")) ? null : reader.GetString("NieuweWaarde")
+                });
+            }
+            return list;
+        }
+        public async Task<List<LogboekDTO>> GetLogsByEntiteitAsync(string tabelNaam, int recordId)
+        {
+            var list = new List<LogboekDTO>();
+            await using var conn = await GetConnectionAsync();
+            await using var cmd = new SqlCommand(@"
+                SELECT LogID, GebruikerID, Tijdstip, Actie, TabelNaam, RecordID, OudeWaarde, NieuweWaarde 
+                FROM LOGBOEK WITH (NOLOCK) 
+                WHERE TabelNaam = @TabelNaam AND RecordID = @RecordID
+                ORDER BY Tijdstip DESC", conn);
+            cmd.Parameters.AddWithValue("@TabelNaam", tabelNaam);
+            cmd.Parameters.AddWithValue("@RecordID", recordId);
 
             await using var reader = await cmd.ExecuteReaderAsync();
             while (await reader.ReadAsync())
