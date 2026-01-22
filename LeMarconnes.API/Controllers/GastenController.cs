@@ -17,15 +17,12 @@ namespace LeMarconnes.API.Controllers
     /// </summary>
     [ApiController]
     [Route("api/[controller]")]
-    public class GastenController : ControllerBase
+    public class GastenController : BaseSecureController
     {
-        // ==== Properties ====
-        private readonly IGiteRepository _repository;
-
         // ==== Constructor ====
         public GastenController(IGiteRepository repository)
+            : base(repository)
         {
-            _repository = repository;
         }
 
         // ============================================================
@@ -46,17 +43,9 @@ namespace LeMarconnes.API.Controllers
             if (gast == null)
                 return NotFound($"Gast met ID {id} niet gevonden.");
 
-            // Security check: Users kunnen alleen hun eigen gast gegevens zien
-            if (User.IsInRole("User") && !User.IsInRole("Admin"))
-            {
-                var email = User.Identity?.Name;
-                if (string.IsNullOrEmpty(email))
-                    return Unauthorized("Gebruiker niet geïdentificeerd.");
-
-                var gebruiker = await _repository.GetGebruikerByEmailAsync(email);
-                if (gebruiker?.GastID != id)
-                    return Forbid(); // 403 Forbidden - user probeert iemand anders' gegevens op te vragen
-            }
+            // Security check via base controller
+            if (!await CanAccessGastDataAsync(id))
+                return Forbid();
 
             return Ok(gast);
         }
@@ -78,24 +67,15 @@ namespace LeMarconnes.API.Controllers
             if (bestaandeGast == null)
                 return NotFound($"Gast met ID {id} niet gevonden.");
 
-            // Security check: Users kunnen alleen hun eigen gast bijwerken
-            if (User.IsInRole("User") && !User.IsInRole("Admin"))
-            {
-                var email = User.Identity?.Name;
-                if (string.IsNullOrEmpty(email))
-                    return Unauthorized("Gebruiker niet geïdentificeerd.");
-
-                var gebruiker = await _repository.GetGebruikerByEmailAsync(email);
-                if (gebruiker?.GastID != id)
-                    return Forbid(); // 403 Forbidden
-            }
+            // Security check via base controller
+            if (!await CanAccessGastDataAsync(id))
+                return Forbid();
 
             var success = await _repository.UpdateGastAsync(gast);
             if (!success)
                 return BadRequest("Kon gast niet bijwerken.");
 
-            await _repository.CreateLogEntryAsync(
-                new LogboekDTO("GAST_GEWIJZIGD", "GAST", id));
+            await LogActionAsync("GAST_GEWIJZIGD", "GAST", id);
 
             return NoContent();
         }
@@ -130,8 +110,7 @@ namespace LeMarconnes.API.Controllers
             if (!success)
                 return BadRequest("Kon IBAN niet bijwerken.");
 
-            await _repository.CreateLogEntryAsync(
-                new LogboekDTO("IBAN_TOEGEVOEGD_VIA_WEBHOOK", "GAST", request.GastID));
+            await LogActionAsync("IBAN_TOEGEVOEGD_VIA_WEBHOOK", "GAST", request.GastID);
 
             return Ok(new { message = "IBAN succesvol toegevoegd" });
         }
@@ -174,8 +153,7 @@ namespace LeMarconnes.API.Controllers
             int nieuweId = await _repository.CreateGastAsync(gast);
             gast.GastID = nieuweId;
 
-            await _repository.CreateLogEntryAsync(
-                new LogboekDTO("GAST_AANGEMAAKT", "GAST", nieuweId));
+            await LogActionAsync("GAST_AANGEMAAKT", "GAST", nieuweId);
 
             return CreatedAtAction(nameof(GetById), new { id = nieuweId }, gast);
         }
@@ -197,8 +175,7 @@ namespace LeMarconnes.API.Controllers
             if (!success)
                 return BadRequest("Kon gast niet anonimiseren.");
 
-            await _repository.CreateLogEntryAsync(
-                new LogboekDTO("GAST_GEANONIMISEERD", "GAST", id));
+            await LogActionAsync("GAST_GEANONIMISEERD_GDPR", "GAST", id);
 
             return NoContent();
         }

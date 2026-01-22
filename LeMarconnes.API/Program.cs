@@ -6,9 +6,8 @@ using LeMarconnes.API.Services.Implementations;
 using LeMarconnes.API.Authentication;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.OpenApi.Models;
+using Microsoft.OpenApi;
 using Scalar.AspNetCore;
-using Microsoft.AspNetCore.HttpOverrides;
 using System.Text.RegularExpressions;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -61,7 +60,7 @@ builder.Services.AddOpenApi("v1", options =>
                           """
         };
 
-        document.Servers = new List<OpenApiServer> { new() { Url = "/" } };
+        document.Servers = [new OpenApiServer { Url = "/" }];
 
         var securityScheme = new OpenApiSecurityScheme
         {
@@ -72,18 +71,10 @@ builder.Services.AddOpenApi("v1", options =>
         };
 
         document.Components ??= new OpenApiComponents();
-        document.Components.SecuritySchemes.Add("ApiKey", securityScheme);
-
-        document.SecurityRequirements.Add(new OpenApiSecurityRequirement
+        if (document.Components.SecuritySchemes != null)
         {
-            {
-                new OpenApiSecurityScheme
-                {
-                    Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "ApiKey" }
-                },
-                Array.Empty<string>()
-            }
-        });
+            document.Components.SecuritySchemes["ApiKey"] = securityScheme;
+        }
 
         return Task.CompletedTask;
     });
@@ -91,12 +82,13 @@ builder.Services.AddOpenApi("v1", options =>
     options.AddOperationTransformer((operation, context, cancellationToken) =>
     {
         var metadata = context.Description.ActionDescriptor.EndpointMetadata;
-        operation.Tags.Clear();
+        operation.Tags?.Clear();
 
         if (metadata.OfType<AllowAnonymousAttribute>().Any())
         {
-            operation.Tags.Add(new OpenApiTag { Name = "🔓 Public Actions" });
-            operation.Security.Clear();
+            operation.Tags ??= new HashSet<OpenApiTagReference>();
+            operation.Tags.Add(new OpenApiTagReference("🔓 Public Actions"));
+            operation.Security?.Clear();
             return Task.CompletedTask;
         }
 
@@ -106,11 +98,13 @@ builder.Services.AddOpenApi("v1", options =>
             var tag = authAttribute.Roles.Contains("Admin") && !authAttribute.Roles.Contains("User")
                 ? "🔐 Admin Actions"
                 : "👤 User Actions";
-            operation.Tags.Add(new OpenApiTag { Name = tag });
+            operation.Tags ??= new HashSet<OpenApiTagReference>();
+            operation.Tags.Add(new OpenApiTagReference(tag));
         }
         else
         {
-            operation.Tags.Add(new OpenApiTag { Name = "🔒 Secured Actions" });
+            operation.Tags ??= new HashSet<OpenApiTagReference>();
+            operation.Tags.Add(new OpenApiTagReference("🔒 Secured Actions"));
         }
 
         return Task.CompletedTask;
@@ -148,21 +142,21 @@ app.Use(async (context, next) =>
         var originalBody = context.Response.Body;
         using var newBody = new MemoryStream();
         context.Response.Body = newBody;
-        
+
         await next();
-        
+
         newBody.Seek(0, SeekOrigin.Begin);
         var json = await new StreamReader(newBody).ReadToEndAsync();
-        
+
         // Simpele regex: "VerhuurEenheidDTO2" -> "VerhuurEenheidDTO", etc.
         json = Regex.Replace(json, @"(\w+DTO)\d+", "$1");
-        
+
         context.Response.Body = originalBody;
         context.Response.ContentLength = System.Text.Encoding.UTF8.GetByteCount(json);
         await context.Response.WriteAsync(json);
         return;
     }
-    
+
     await next();
 });
 
@@ -171,7 +165,7 @@ app.MapScalarApiReference(options =>
 {
     options.WithTitle("LeMarconnes API");
     options.WithTheme(ScalarTheme.Mars);
-    options.WithPreferredScheme("ApiKey");
+    options.AddPreferredSecuritySchemes("ApiKey");
     options.WithDefaultHttpClient(ScalarTarget.CSharp, ScalarClient.HttpClient);
 });
 

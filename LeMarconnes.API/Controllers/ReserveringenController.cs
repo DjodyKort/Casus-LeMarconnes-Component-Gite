@@ -16,16 +16,15 @@ namespace LeMarconnes.API.Controllers
     /// </summary>
     [ApiController]
     [Route("api/[controller]")]
-    public class ReserveringenController : ControllerBase
+    public class ReserveringenController : BaseSecureController
     {
         // ==== Properties ====
-        private readonly IGiteRepository _repository;
         private readonly IBoekingService _boekingService;
 
         // ==== Constructor ====
         public ReserveringenController(IGiteRepository repository, IBoekingService boekingService)
+            : base(repository)
         {
-            _repository = repository;
             _boekingService = boekingService;
         }
 
@@ -66,18 +65,9 @@ namespace LeMarconnes.API.Controllers
             if (reservering == null)
                 return NotFound($"Reservering met ID {id} niet gevonden.");
 
-            // Security check: Users kunnen alleen hun eigen reserveringen zien
-            if (User.IsInRole("User") && !User.IsInRole("Admin"))
-            {
-                // Haal de ingelogde gebruiker op om de GastID te verifiëren
-                var email = User.Identity?.Name;
-                if (string.IsNullOrEmpty(email))
-                    return Unauthorized("Gebruiker niet geïdentificeerd.");
-
-                var gebruiker = await _repository.GetGebruikerByEmailAsync(email);
-                if (gebruiker?.GastID != reservering.GastID)
-                    return Forbid(); // 403 Forbidden - user probeert iemand anders' reservering op te vragen
-            }
+            // Security check via base controller
+            if (!await IsOwnerOfReserveringAsync(id))
+                return Forbid();
 
             return Ok(reservering);
         }
@@ -91,17 +81,9 @@ namespace LeMarconnes.API.Controllers
         [HttpGet("gast/{gastId}")]
         public async Task<ActionResult<List<ReserveringDTO>>> GetByGast(int gastId)
         {
-            // Security check: Users kunnen alleen hun eigen reserveringen zien
-            if (User.IsInRole("User") && !User.IsInRole("Admin"))
-            {
-                var email = User.Identity?.Name;
-                if (string.IsNullOrEmpty(email))
-                    return Unauthorized("Gebruiker niet geïdentificeerd.");
-
-                var gebruiker = await _repository.GetGebruikerByEmailAsync(email);
-                if (gebruiker?.GastID != gastId)
-                    return Forbid(); // 403 Forbidden - user probeert iemand anders' reserveringen op te vragen
-            }
+            // Security check via base controller
+            if (!await CanAccessGastDataAsync(gastId))
+                return Forbid();
 
             var reserveringen = await _repository.GetReservationsForGastAsync(gastId);
             return Ok(reserveringen);
@@ -121,17 +103,9 @@ namespace LeMarconnes.API.Controllers
             if (reservering == null)
                 return NotFound($"Reservering met ID {id} niet gevonden.");
 
-            // Security check: Users kunnen alleen details van hun eigen reserveringen zien
-            if (User.IsInRole("User") && !User.IsInRole("Admin"))
-            {
-                var email = User.Identity?.Name;
-                if (string.IsNullOrEmpty(email))
-                    return Unauthorized("Gebruiker niet geïdentificeerd.");
-
-                var gebruiker = await _repository.GetGebruikerByEmailAsync(email);
-                if (gebruiker?.GastID != reservering.GastID)
-                    return Forbid(); // 403 Forbidden
-            }
+            // Security check via base controller
+            if (!await IsOwnerOfReserveringAsync(id))
+                return Forbid();
 
             var details = await _repository.GetReservationDetailsAsync(id);
             return Ok(details);
@@ -147,21 +121,13 @@ namespace LeMarconnes.API.Controllers
         [HttpPut("{id}")]
         public async Task<ActionResult> Update(int id, [FromBody] UpdateReserveringRequestDTO request)
         {
-            // Security check: haal eerst reservering op om ownership te checken
+            // Security check via base controller
             var reservering = await _repository.GetReserveringByIdAsync(id);
             if (reservering == null)
                 return NotFound($"Reservering met ID {id} niet gevonden.");
 
-            if (User.IsInRole("User") && !User.IsInRole("Admin"))
-            {
-                var email = User.Identity?.Name;
-                if (string.IsNullOrEmpty(email))
-                    return Unauthorized("Gebruiker niet geïdentificeerd.");
-
-                var gebruiker = await _repository.GetGebruikerByEmailAsync(email);
-                if (gebruiker?.GastID != reservering.GastID)
-                    return Forbid(); // 403 Forbidden
-            }
+            if (!await IsOwnerOfReserveringAsync(id))
+                return Forbid();
 
             var resultaat = await _boekingService.WijzigReserveringAsync(
                 id,
@@ -190,16 +156,9 @@ namespace LeMarconnes.API.Controllers
             if (reservering == null)
                 return NotFound($"Reservering met ID {id} niet gevonden.");
 
-            if (User.IsInRole("User") && !User.IsInRole("Admin"))
-            {
-                var email = User.Identity?.Name;
-                if (string.IsNullOrEmpty(email))
-                    return Unauthorized("Gebruiker niet geïdentificeerd.");
-
-                var gebruiker = await _repository.GetGebruikerByEmailAsync(email);
-                if (gebruiker?.GastID != reservering.GastID)
-                    return Forbid(); // 403 Forbidden
-            }
+            // Security check via base controller
+            if (!await IsOwnerOfReserveringAsync(id))
+                return Forbid();
 
             var success = await _boekingService.AnnuleerReserveringAsync(id);
 
@@ -267,31 +226,9 @@ namespace LeMarconnes.API.Controllers
             if (!success)
                 return BadRequest("Kon reservering niet verwijderen.");
 
-            await _repository.CreateLogEntryAsync(
-                new LogboekDTO("RESERVERING_VERWIJDERD", "RESERVERING", id));
+            await LogActionAsync("RESERVERING_VERWIJDERD", "RESERVERING", id);
 
             return NoContent();
         }
-    }
-
-    // ==== Request DTOs ====
-
-    /// <summary>
-    /// Request DTO voor het wijzigen van een reservering (alle velden optioneel).
-    /// </summary>
-    public class UpdateReserveringRequestDTO
-    {
-        public DateTime? StartDatum { get; set; }
-        public DateTime? EindDatum { get; set; }
-        public int? EenheidID { get; set; }
-        public int? AantalPersonen { get; set; }
-    }
-
-    /// <summary>
-    /// Request DTO voor het wijzigen van de status.
-    /// </summary>
-    public class UpdateStatusRequestDTO
-    {
-        public string Status { get; set; } = string.Empty;
     }
 }
