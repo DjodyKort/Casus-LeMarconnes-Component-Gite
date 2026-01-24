@@ -69,7 +69,7 @@ resource giteAppService 'Microsoft.Web/sites@2023-01-01' = {
     serverFarmId: existingAppServicePlan.id
     httpsOnly: true
     siteConfig: {
-      linuxFxVersion: 'DOTNETCORE|8.0' // Azure ondersteunt .NET 8 (niet 10)
+      linuxFxVersion: 'DOTNETCORE|10.0'
       alwaysOn: true
       ftpsState: 'Disabled'
       minTlsVersion: '1.2'

@@ -13,6 +13,7 @@ namespace LeMarconnes.API.Controllers
     /// <summary>
     /// Controller voor read-only lookups: platformen en tarief categorieën.
     /// </summary>
+    [AllowAnonymous]
     [ApiController]
     [Route("api/[controller]")]
     public class LookupsController : ControllerBase

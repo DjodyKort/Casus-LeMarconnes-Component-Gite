@@ -9,3 +9,5 @@
 **.json
 **.http
 **.repomixignore
+/bin
+/obj

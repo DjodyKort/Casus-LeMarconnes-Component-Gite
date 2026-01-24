@@ -16,16 +16,15 @@ namespace LeMarconnes.API.Controllers
     /// </summary>
     [ApiController]
     [Route("api/[controller]")]
-    public class GebruikersController : ControllerBase
+    public class GebruikersController : BaseSecureController
     {
         // ==== Properties ====
-        private readonly IGiteRepository _repository;
         private readonly IWachtwoordService _wachtwoordService;
 
         // ==== Constructor ====
         public GebruikersController(IGiteRepository repository, IWachtwoordService wachtwoordService)
+            : base(repository)
         {
-            _repository = repository;
             _wachtwoordService = wachtwoordService;
         }
 
@@ -62,8 +61,7 @@ namespace LeMarconnes.API.Controllers
                 gebruiker.Gast = await _repository.GetGastByIdAsync(gebruiker.GastID.Value);
             }
 
-            await _repository.CreateLogEntryAsync(
-                new LogboekDTO("GEBRUIKER_INGELOGD", "GEBRUIKER", gebruiker.GebruikerID));
+            await LogActionAsync("GEBRUIKER_INGELOGD", "GEBRUIKER", gebruiker.GebruikerID);
 
             // TODO: Genereer JWT token voor productie
             // Voor nu: return gebruiker + instructie om API key te gebruiken
@@ -108,8 +106,7 @@ namespace LeMarconnes.API.Controllers
             int nieuweId = await _repository.CreateGebruikerAsync(nieuweGebruiker);
             nieuweGebruiker.GebruikerID = nieuweId;
 
-            await _repository.CreateLogEntryAsync(
-                new LogboekDTO("GEBRUIKER_GEREGISTREERD", "GEBRUIKER", nieuweId));
+            await LogActionAsync("GEBRUIKER_GEREGISTREERD", "GEBRUIKER", nieuweId);
 
             // Return zonder WachtwoordHash (JsonIgnore zorgt hiervoor)
             return CreatedAtAction(nameof(GetProfiel), new { }, nieuweGebruiker);
@@ -127,8 +124,6 @@ namespace LeMarconnes.API.Controllers
         [HttpGet("profiel")]
         public async Task<ActionResult<GebruikerDTO>> GetProfiel()
         {
-            // TODO: Haal gebruiker ID uit JWT token/claims wanneer JWT wordt geïmplementeerd
-            // Voor nu: gebruik email uit context (via API key)
             var email = User.Identity?.Name ?? "unknown";
 
             // Gebruik de geoptimaliseerde methode die volledige Gast data ophaalt
@@ -164,8 +159,7 @@ namespace LeMarconnes.API.Controllers
             if (!success)
                 return BadRequest("Kon wachtwoord niet bijwerken.");
 
-            await _repository.CreateLogEntryAsync(
-                new LogboekDTO("WACHTWOORD_GEWIJZIGD", "GEBRUIKER", gebruiker.GebruikerID));
+            await LogActionAsync("WACHTWOORD_GEWIJZIGD", "GEBRUIKER", gebruiker.GebruikerID);
 
             return NoContent();
         }
@@ -225,8 +219,7 @@ namespace LeMarconnes.API.Controllers
             if (!success)
                 return BadRequest("Kon gebruiker niet verwijderen.");
 
-            await _repository.CreateLogEntryAsync(
-                new LogboekDTO("GEBRUIKER_VERWIJDERD", "GEBRUIKER", id));
+            await LogActionAsync("GEBRUIKER_VERWIJDERD", "GEBRUIKER", id);
 
             return NoContent();
         }

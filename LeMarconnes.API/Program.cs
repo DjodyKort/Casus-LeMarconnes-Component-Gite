@@ -57,6 +57,15 @@ builder.Services.AddOpenApi("v1", options =>
                           - 🔐 **Admin**: `admin-key-12345` (volledige toegang & logboeken)
                           
                           Klik op de **Authorize** knop (of 'Auth') om je API key in te voeren.
+
+                          **Gebruikers note:** 
+                          
+                          Omdat deze API runt met een 'development' database, kan het zijn dat de
+                          endpoints niet altijd de 1e keer werken. Het is aanbevolen om de
+                          request een tweede keer te sturen als je een (SQL) foutmelding krijgt.
+
+                          Want de database heeft vaak warm-up tijd nodig bij de eerste connectie
+                          omdat hij mogelijk uit een slaapstand komt.
                           """
         };
 
@@ -65,16 +74,21 @@ builder.Services.AddOpenApi("v1", options =>
         var securityScheme = new OpenApiSecurityScheme
         {
             Name = "X-API-Key",
-            Description = "Voer API Key in (bijv. 'admin-key-12345')",
+            Description = "Voer API Key in (bijv. 'admin-key-12345' of 'user-key-67890')",
             In = ParameterLocation.Header,
             Type = SecuritySchemeType.ApiKey
         };
 
         document.Components ??= new OpenApiComponents();
-        if (document.Components.SecuritySchemes != null)
+        document.Components.SecuritySchemes ??= new Dictionary<string, IOpenApiSecurityScheme>();
+        document.Components.SecuritySchemes["ApiKey"] = securityScheme;
+
+        // Default: alle endpoints vereisen API key (tenzij [AllowAnonymous])
+        document.Security ??= new List<OpenApiSecurityRequirement>();
+        document.Security.Add(new OpenApiSecurityRequirement
         {
-            document.Components.SecuritySchemes["ApiKey"] = securityScheme;
-        }
+            [new OpenApiSecuritySchemeReference("ApiKey", document, string.Empty)] = new List<string>()
+        });
 
         return Task.CompletedTask;
     });
@@ -88,7 +102,8 @@ builder.Services.AddOpenApi("v1", options =>
         {
             operation.Tags ??= new HashSet<OpenApiTagReference>();
             operation.Tags.Add(new OpenApiTagReference("🔓 Public Actions"));
-            operation.Security?.Clear();
+            // Override document-level security: maak deze operatie expliciet publiek
+            operation.Security = new List<OpenApiSecurityRequirement>();
             return Task.CompletedTask;
         }
 
